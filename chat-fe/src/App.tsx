@@ -15,17 +15,17 @@ function App() {
 
   const joinRoom = () => {
     if (!roomId.trim() || !username.trim()) return;
-    
     const ws = new WebSocket("ws://localhost:8080");
     ws.onmessage = (event) => {
-      setMessages((m) => [...m, event.data]);
+      const data = JSON.parse(event.data);
+      setMessages((m) => [...m, data]);
     };
 
     ws.onopen = () => {
       ws.send(
         JSON.stringify({
           type: "join",
-          payload: { roomId },
+          payload: { roomId, username },
         })
       );
       setJoined(true);
@@ -63,8 +63,10 @@ function App() {
     <div className="h-screen flex flex-col bg-gray-900 text-white">
       <div className="flex-1 overflow-y-auto p-4 space-y-2">
         {messages.map((message, index) => (
-          <div key={index} className={`flex ${index % 2 === 0 ? 'justify-start' : 'justify-end'}`}>
-            <span className={`p-2 rounded-lg ${index % 2 === 0 ? 'bg-blue-600' : 'bg-green-500'}`}>{message}</span>
+          <div key={index} className={`flex ${message.sender === username ? 'justify-end' : 'justify-start'}`}>
+            <span className={`p-2 rounded-lg ${message.sender === username ? 'bg-green-500' : 'bg-blue-600'}`}>
+              <strong>{message.sender}: </strong>{message.text}
+            </span>
           </div>
         ))}
       </div>
@@ -74,7 +76,10 @@ function App() {
           onClick={() => {
             const message = inputRef.current?.value;
             if (message.trim()) {
-              wsRef.current.send(JSON.stringify({ type: "chat", payload: { message } }));
+              wsRef.current.send(JSON.stringify({ 
+                type: "chat", 
+                payload: { message, sender: username } 
+              }));
               inputRef.current.value = "";
             }
           }}
